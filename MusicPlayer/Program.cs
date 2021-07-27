@@ -5,25 +5,27 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
+using System.Windows.Media;
 
 namespace MusicPlayer {
     class Program {
         static string directory;
         static string currentPlayingSongName;
-        static System.Media.SoundPlayer player;
         static Random random;
         static Queue<string> queue;
         static FileInfo[] files;
+        static MediaPlayer mediaPlayer;
 
         static void Main(string[] args) {
             queue = new Queue<string>();
             random = new Random();
-            player = new System.Media.SoundPlayer();
             directory = Environment.CurrentDirectory;
             files = new DirectoryInfo(directory).GetFiles("*.wav");
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.Volume = 0.1;
 
             Console.WriteLine("Now playing music from this directory!");
-            PlayNext();
+            Next();
 
             while (true) {
                 Console.Write(">>> ");
@@ -53,38 +55,56 @@ namespace MusicPlayer {
             }
         }
 
-        static void PlayNext() {
+        static void Play() {
+            Console.WriteLine("Playing: '" + currentPlayingSongName + "'");
+            mediaPlayer.Play();
+        }
+
+        static void Next() {
             if (queue.Count == 0) {
                 PopulateQueue();
             }
             Console.WriteLine("Queue length: " + queue.Count);
             currentPlayingSongName = queue.Dequeue();
             Console.WriteLine("Playing: '" + currentPlayingSongName + "'");
-            player.SoundLocation = directory + "/" + currentPlayingSongName;
-            player.Load();
-            player.Play();
+
+            string uri = directory + "/" + currentPlayingSongName;
+            mediaPlayer.Open(new Uri(uri));
+            mediaPlayer.Play();
+        }
+
+        static void Pause() {
+            Console.WriteLine("Paused: " + "'" + currentPlayingSongName + "'!");
+            mediaPlayer.Pause();
         }
 
         static void Stop() {
-            Console.WriteLine("Stopped playing: " + "'" + currentPlayingSongName + "'!");
-            player.Stop();
+            Console.WriteLine("Stopped: " + "'" + currentPlayingSongName + "'!");
+            mediaPlayer.Stop();
+        }
+
+        static void Volume(int volume) {
+            mediaPlayer.Volume = (float)volume / 100;
         }
 
         static bool HandleInput(string input) {
-            switch(input) {
-                case "exit":
-                    return false;
-                case "play":
-                case "next":
-                    PlayNext();
-                    return true;
-                case "stop":
-                    Stop();
-                    return true;
-                default:
-                    Console.WriteLine("'" + input + "'" + " is not a recognized command!");
-                    return true;
+            if (input == "exit") {
+                return false;
+            } else if (input == "play") {
+                Play();
+            } else if (input == "next") {
+                Next();
+            } else if (input == "pause") {
+                Pause();
+            } else if (input == "stop") {
+                Stop();
+            } else if(input.Substring(0, 6) == "volume") {
+                string[] strs = input.Split(' ');
+                Volume(Int32.Parse(strs[1]));
+            } else {
+                Console.WriteLine("'" + input + "'" + " is not a recognized command!");
             }
+            return true;
         }
     }
 }
