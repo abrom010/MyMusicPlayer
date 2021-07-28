@@ -6,8 +6,12 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Media;
+using System.Threading;
+using System.Windows.Threading;
 
 namespace MusicPlayer {
+    
+
     class Program {
         static string directory;
         static string currentPlayingSongName;
@@ -15,8 +19,12 @@ namespace MusicPlayer {
         static Queue<string> queue;
         static FileInfo[] files;
         static MediaPlayer mediaPlayer;
+        static bool auto;
 
         static void Main(string[] args) {
+            if (args.Length == 1 && args[0] == "auto") auto = true;
+            else auto = false;
+
             queue = new Queue<string>();
             random = new Random();
             directory = Environment.CurrentDirectory;
@@ -56,8 +64,11 @@ namespace MusicPlayer {
         }
 
         static void Play() {
-            Console.WriteLine("Playing: '" + currentPlayingSongName + "'");
             mediaPlayer.Play();
+        }
+
+        static void OnMediaEnded(object sender, EventArgs e) {
+            Next();
         }
 
         static void Next() {
@@ -71,6 +82,10 @@ namespace MusicPlayer {
             string uri = directory + "/" + currentPlayingSongName;
             mediaPlayer.Open(new Uri(uri));
             mediaPlayer.Play();
+            if (auto) {
+                mediaPlayer.MediaEnded += OnMediaEnded;
+                Dispatcher.Run();
+            }
         }
 
         static void Pause() {
@@ -87,6 +102,7 @@ namespace MusicPlayer {
             mediaPlayer.Volume = (float)volume / 100;
         }
 
+
         static bool HandleInput(string input) {
             if (input == "exit") {
                 return false;
@@ -98,7 +114,7 @@ namespace MusicPlayer {
                 Pause();
             } else if (input == "stop") {
                 Stop();
-            } else if(input.Substring(0, 6) == "volume") {
+            } else if(input.Length == 6 && input.Substring(0, 6) == "volume") {
                 string[] strs = input.Split(' ');
                 Volume(Int32.Parse(strs[1]));
             } else {
